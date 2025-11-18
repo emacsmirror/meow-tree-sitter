@@ -309,16 +309,17 @@ available."
   (if (null (car (treesit-parsers-at)))
       (call-interactively #'meow-block)
     (let ((p (point))
-          (m (if (region-active-p) (mark) (point)))
+          (m (mark))
           (node (treesit-node-at (point))))
-      ;; Expand until the node contains point or mark.
-      (while (not (or (< (treesit-node-start node)
-                         p
-                         (treesit-node-end node))
-                      (< (treesit-node-start node)
-                         m
-                         (treesit-node-end node))))
-        (setq node (treesit-node-parent node)))
+      (when (region-active-p)
+        (setq node (treesit-parent-until
+                    node (lambda (n)
+                           (or (< (treesit-node-start n)
+                                  p
+                                  (treesit-node-end n))
+                               (< (treesit-node-start n)
+                                  m
+                                  (treesit-node-end n)))))))
       (thread-first
         (meow--make-selection '(expand . block)
                               (treesit-node-start node)
