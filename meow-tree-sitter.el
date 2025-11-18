@@ -302,15 +302,18 @@ binds!"
 Will automatically fall back to `meow-block' if no treesit parser is
 available."
   (interactive)
-  ;; Using `treesit-parsers-at' theoretically means this also works with local
-  ;; parsers, though I don't know anything in Emacs that uses that, nor how to
-  ;; test it. It always seems to return a list, with `nil' as the only element
-  ;; when treesit isn't present.
-  (if (null (car (treesit-parsers-at)))
-      (call-interactively #'meow-block)
-    (let ((p (point))
-          (m (mark))
-          (node (treesit-node-at (point))))
+  (let ((p (point))
+        (m (mark))
+        (node (treesit-node-at (point))))
+    (if (null node)
+        ;; No tree-sitter data available.
+        (call-interactively #'meow-block)
+      ;; If the region is active, expand the node until it contains both point
+      ;; and mark. "Contain" requires that the node not be at the boundaries,
+      ;; which is how consistent expansion is guaranteed.
+      ;;
+      ;; NOTE: this is a bit hacky and inconsistent, might be better to refactor
+      ;; in the future.
       (when (region-active-p)
         (setq node (treesit-parent-until
                     node (lambda (n)
